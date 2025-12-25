@@ -2,25 +2,59 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from PIL import Image
 
 # --- 1. CONFIGURATION & SETUP ---
 st.set_page_config(page_title="Bank Churn Dashboard", layout="wide")
 
-# Title and Intro (Component 1: Text/Title)
-st.title("📊 Bank Customer Churn Analysis")
-st.markdown("""
-This dashboard analyzes the **Bank Churn Dataset** to identify factors contributing to customer attrition.
-Use the sidebar to filter data and explore different perspectives.
+# --- 2. SIDEBAR: PROFILE & FILTERS ---
+st.sidebar.header("About Me")
+
+# A. Profile Image
+# Make sure you have a file named 'profile.jpg' or 'dp.png' in your folder!
+try:
+    # Change 'profile.jpg' to your actual file name
+    profile_image = Image.open('profile.jpg') 
+    st.sidebar.image(profile_image, caption="Data Analyst", use_container_width=True)
+except FileNotFoundError:
+    st.sidebar.warning("⚠️ Upload an image named 'profile.jpg' to see it here.")
+
+# B. Profile Description
+st.sidebar.markdown("""
+**Name:** [Your Name]  
+**Role:** Data Science Student  
+**Goal:** Helping businesses reduce customer churn through data-driven insights.
 """)
 
-# --- 2. LOAD DATA ---
-@st.cache_data # Caching improves performance
+st.sidebar.divider()
+
+# --- 3. PROJECT EXPLANATION ---
+st.title("📊 Bank Customer Churn Analysis")
+
+with st.expander("ℹ️ About this Project (Click to Expand)", expanded=True):
+    st.markdown("""
+    ### **Project Overview**
+    This dashboard analyzes a dataset of bank customers to identify the key reasons why they leave (churn). 
+    By understanding these patterns, the bank can take proactive steps to retain valuable customers.
+    
+    **Key Objectives:**
+    * **Visualize** the distribution of churn across demographics (Age, Gender, Income).
+    * **Identify** high-risk segments (e.g., specific credit card types or inactivity periods).
+    * **Provide** actionable insights for the marketing team.
+    
+    **Data Source:** Bank Churners Dataset (Kaggle).
+    """)
+
+# --- 4. LOAD DATA ---
+@st.cache_data
 def load_data():
     try:
         df = pd.read_csv('bank_churn_data.csv')
-        # Create a numeric Churn column if it doesn't exist
         if 'Attrition_Flag' not in df.columns:
             df['is_churn'] = df['attrition_flag'].apply(lambda x: 1 if x == 'Attrited Customer' else 0)
+        else:
+             # Ensure we have a numeric column for calculation
+             df['is_churn'] = df['attrition_flag'].apply(lambda x: 1 if x == 'Attrited Customer' else 0)
         return df
     except FileNotFoundError:
         return None
@@ -31,7 +65,7 @@ if df is None:
     st.error("⚠️ File 'bank_churn_data.csv' not found. Please upload it to your project folder.")
     st.stop()
 
-# --- 3. SIDEBAR FILTERS (Component 2: Sidebar & Widgets) ---
+# --- 5. SIDEBAR FILTERS ---
 st.sidebar.header("Filter Data")
 
 # Filter by Gender
@@ -51,7 +85,7 @@ card_filter = st.sidebar.multiselect(
 # Apply Filters
 df_filtered = df.query("gender == @gender_filter & card_category == @card_filter")
 
-# --- 4. KEY METRICS (Component 3: Metric) ---
+# --- 6. KEY METRICS ---
 st.subheader("Key Performance Indicators (KPIs)")
 col1, col2, col3 = st.columns(3)
 
@@ -65,10 +99,9 @@ col3.metric("Churn Rate", f"{churn_rate:.2f}%")
 
 st.divider()
 
-# --- 5. INTERACTIVE CHARTS (Component 4: Pyplot/Charts) ---
+# --- 7. INTERACTIVE CHARTS ---
 st.subheader("🔍 Deep Dive Analysis")
 
-# User chooses what to plot (Interactivity Requirement)
 chart_choice = st.selectbox(
     "Choose a variable to visualize against Churn:",
     ["education_level", "income_category", "marital_status", "contacts_count_12_mon"]
@@ -80,7 +113,6 @@ with row1_col1:
     st.markdown(f"**Churn Distribution by {chart_choice}**")
     fig, ax = plt.subplots(figsize=(8, 5))
     
-    # Check if data is numeric or categorical for better plotting
     if pd.api.types.is_numeric_dtype(df_filtered[chart_choice]):
         sns.histplot(data=df_filtered, x=chart_choice, hue="attrition_flag", kde=True, ax=ax, palette="coolwarm")
     else:
@@ -92,15 +124,16 @@ with row1_col1:
 with row1_col2:
     st.markdown("**Income vs Credit Limit (Scatter)**")
     fig2, ax2 = plt.subplots(figsize=(8, 5))
+    # Using total_trans_amt and total_trans_ct as proxies for 'Income vs Credit Limit' based on typical dataset fields
+    # You can change these x and y values to 'Credit_Limit' or 'Income_Category' if you convert income to numeric
     sns.scatterplot(data=df_filtered, x='total_trans_amt', y='total_trans_ct', hue='attrition_flag', alpha=0.6, ax=ax2)
     plt.title("Transaction Amount vs Count")
     st.pyplot(fig2)
 
-# --- 6. RAW DATA VIEW (Component 5: Dataframe & Expander) ---
+# --- 8. RAW DATA VIEW ---
 st.subheader("📂 Raw Data Explorer")
 with st.expander("Click to view raw data"):
     st.dataframe(df_filtered)
 
-# Footer
 st.markdown("---")
-st.caption("Dashboard created with Streamlit")
+st.caption("Dashboard created with Streamlit by [Your Name]")
