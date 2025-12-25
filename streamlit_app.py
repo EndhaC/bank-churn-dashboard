@@ -28,7 +28,7 @@ except FileNotFoundError:
 
 # B. Profile Description
 st.sidebar.markdown("""
-**Name:** [Your Name]  
+**Name:** Endha Christian Putra Sitepu  
 **Role:** Data Science Student  
 **Goal:** Helping businesses reduce customer churn through data-driven insights.
 """)
