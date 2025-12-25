@@ -7,13 +7,20 @@ from PIL import Image
 # --- 1. CONFIGURATION & SETUP ---
 st.set_page_config(page_title="Bank Churn Dashboard", layout="wide")
 
+# Try to load the CSS style if it exists (Optional)
+try:
+    with open("style.css") as f:
+        st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
+except FileNotFoundError:
+    pass
+
 # --- 2. SIDEBAR: PROFILE & FILTERS ---
 st.sidebar.header("About Me")
 
 # A. Profile Image
-# Make sure you have a file named 'profile.jpg' or 'dp.png' in your folder!
+# Make sure you have a file named 'profile.jpg' in your folder!
 try:
-    # Change 'profile.jpg' to your actual file name
+    # Change 'profile.jpg' to your actual file name (e.g., 'me.png')
     profile_image = Image.open('profile.jpg') 
     st.sidebar.image(profile_image, caption="Data Analyst", use_container_width=True)
 except FileNotFoundError:
@@ -50,11 +57,20 @@ with st.expander("ℹ️ About this Project (Click to Expand)", expanded=True):
 def load_data():
     try:
         df = pd.read_csv('bank_churn_data.csv')
+        # Ensure we have a numeric column for calculation
         if 'Attrition_Flag' not in df.columns:
-            df['is_churn'] = df['attrition_flag'].apply(lambda x: 1 if x == 'Attrited Customer' else 0)
+             # Fallback if the column hasn't been pre-processed
+            if 'attrition_flag' in df.columns:
+                df['is_churn'] = df['attrition_flag'].apply(lambda x: 1 if x == 'Attrited Customer' else 0)
+                df['attrition_flag'] = df['attrition_flag'] # Keep original for plotting
         else:
-             # Ensure we have a numeric column for calculation
-             df['is_churn'] = df['attrition_flag'].apply(lambda x: 1 if x == 'Attrited Customer' else 0)
+             df['is_churn'] = df['Attrition_Flag']
+        
+        # Ensure 'attrition_flag' string column exists for plotting labels
+        if 'attrition_flag' not in df.columns:
+             # If we only have 0/1, map it back for better labels
+             df['attrition_flag'] = df['is_churn'].apply(lambda x: 'Attrited Customer' if x == 1 else 'Existing Customer')
+             
         return df
     except FileNotFoundError:
         return None
@@ -113,6 +129,7 @@ with row1_col1:
     st.markdown(f"**Churn Distribution by {chart_choice}**")
     fig, ax = plt.subplots(figsize=(8, 5))
     
+    # Check if data is numeric or categorical for better plotting
     if pd.api.types.is_numeric_dtype(df_filtered[chart_choice]):
         sns.histplot(data=df_filtered, x=chart_choice, hue="attrition_flag", kde=True, ax=ax, palette="coolwarm")
     else:
@@ -122,12 +139,11 @@ with row1_col1:
     st.pyplot(fig)
 
 with row1_col2:
-    st.markdown("**Income vs Credit Limit (Scatter)**")
+    st.markdown("**Transaction Behavior (Scatter)**")
     fig2, ax2 = plt.subplots(figsize=(8, 5))
-    # Using total_trans_amt and total_trans_ct as proxies for 'Income vs Credit Limit' based on typical dataset fields
-    # You can change these x and y values to 'Credit_Limit' or 'Income_Category' if you convert income to numeric
     sns.scatterplot(data=df_filtered, x='total_trans_amt', y='total_trans_ct', hue='attrition_flag', alpha=0.6, ax=ax2)
-    plt.title("Transaction Amount vs Count")
+    plt.xlabel("Total Transaction Amount")
+    plt.ylabel("Total Transaction Count")
     st.pyplot(fig2)
 
 # --- 8. RAW DATA VIEW ---
@@ -136,4 +152,4 @@ with st.expander("Click to view raw data"):
     st.dataframe(df_filtered)
 
 st.markdown("---")
-st.caption("Dashboard created with Streamlit by [Your Name]")
+st.caption("Dashboard created with Streamlit")
